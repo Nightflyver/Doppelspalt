@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doppelspalt-Simulation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+            color: #4db8ff;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .control-group {
+            background: #333333;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4db8ff;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #4db8ff;
+        }
+
+        .slider-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: #444444;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4db8ff;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(77, 184, 255, 0.5);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4db8ff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(77, 184, 255, 0.5);
+        }
+
+        .value-display {
+            min-width: 100px;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            background: #1a1a1a;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: #4db8ff;
+        }
+
+        .canvas-container {
+            background: #000000;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 500px;
+            box-shadow: inset 0 0 20px rgba(77, 184, 255, 0.1);
+        }
+
+        canvas {
+            border-radius: 4px;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .info-box {
+            grid-column: 1 / -1;
+            background: #333333;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4db8ff;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #cccccc;
+        }
+
+        .info-box strong {
+            color: #4db8ff;
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 Doppelspalt-Interferenz-Simulation</h1>
+
+        <div class="main-content">
+            <div class="controls">
+                <div class="control-group">
+                    <label for="slitDistance">Spaltabstand d</label>
+                    <div class="slider-container">
+                        <input type="range" id="slitDistance" min="0.1" max="2" step="0.05" value="1.0">
+                        <div class="value-display"><span id="valD">1.00</span> μm</div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label for="slitWidth">Spaltbreite b</label>
+                    <div class="slider-container">
+                        <input type="range" id="slitWidth" min="0.05" max="0.5" step="0.02" value="0.2">
+                        <div class="value-display"><span id="valB">0.20</span> μm</div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label for="wavelength">Wellenlänge λ</label>
+                    <div class="slider-container">
+                        <input type="range" id="wavelength" min="380" max="750" step="10" value="550">
+                        <div class="value-display"><span id="valLambda">550</span> nm</div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label for="distance">Schirmentfernung L</label>
+                    <div class="slider-container">
+                        <input type="range" id="distance" min="0.5" max="5" step="0.1" value="2.0">
+                        <div class="value-display"><span id="valL">2.00</span> m</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="canvas" width="400" height="500"></canvas>
+            </div>
+
+            <div class="info-box">
+                <strong>Formel:</strong> I(y) = 4·cos²(π·d·y/(λ·L))·sinc²(π·b·y/(λ·L))<br><br>
+                <strong>Bedienung:</strong> Verschiebe die Schieberegler, um die Parameter zu ändern. Das Interferenzmuster aktualisiert sich in Echtzeit.<br><br>
+                <strong>Farben:</strong> Die Intensität wird von dunkel (niedrig) bis hell (hoch) dargestellt. Die Farbgebung entspricht der eingestellten Wellenlänge.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        const sliders = {
+            d: document.getElementById('slitDistance'),
+            b: document.getElementById('slitWidth'),
+            lambda: document.getElementById('wavelength'),
+            L: document.getElementById('distance')
+        };
+
+        const displays = {
+            d: document.getElementById('valD'),
+            b: document.getElementById('valB'),
+            lambda: document.getElementById('valLambda'),
+            L: document.getElementById('valL')
+        };
+
+        function wavelengthToRGB(wavelength) {
+            let r, g, b;
+
+            if (wavelength >= 380 && wavelength < 440) {
+                r = -(wavelength - 440) / (440 - 380);
+                g = 0;
+                b = 1;
+            } else if (wavelength >= 440 && wavelength < 490) {
+                r = 0;
+                g = (wavelength - 440) / (490 - 440);
+                b = 1;
+            } else if (wavelength >= 490 && wavelength < 510) {
+                r = 0;
+                g = 1;
+                b = -(wavelength - 510) / (510 - 490);
+            } else if (wavelength >= 510 && wavelength < 580) {
+                r = (wavelength - 510) / (580 - 510);
+                g = 1;
+                b = 0;
+            } else if (wavelength >= 580 && wavelength < 645) {
+                r = 1;
+                g = -(wavelength - 645) / (645 - 580);
+                b = 0;
+            } else if (wavelength >= 645 && wavelength <= 750) {
+                r = 1;
+                g = 0;
+                b = 0;
+            }
+
+            r = Math.round(r * 255);
+            g = Math.round(g * 255);
+            b = Math.round(b * 255);
+
+            return [r, g, b];
+        }
+
+        function drawPattern() {
+            const d = parseFloat(sliders.d.value) * 1e-6;
+            const b = parseFloat(sliders.b.value) * 1e-6;
+            const lambda = parseFloat(sliders.lambda.value) * 1e-9;
+            const L = parseFloat(sliders.L.value);
+
+            displays.d.textContent = sliders.d.value;
+            displays.b.textContent = sliders.b.value;
+            displays.lambda.textContent = sliders.lambda.value;
+            displays.L.textContent = sliders.L.value;
+
+            const rgb = wavelengthToRGB(parseInt(sliders.lambda.value));
+
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const centerY = canvas.height / 2;
+            const scale = canvas.height / 0.002;
+
+            for (let py = 0; py < canvas.height; py++) {
+                const y = (py - centerY) / scale;
+
+                const arg1 = Math.PI * d * y / (lambda * L);
+                const arg2 = Math.PI * b * y / (lambda * L);
+
+                const cosArg = Math.cos(arg1);
+                const sinc = (arg2 === 0) ? 1 : Math.sin(arg2) / arg2;
+
+                const intensity = 4 * cosArg * cosArg * sinc * sinc;
+                const normalized = Math.min(intensity / 4, 1);
+
+                const r = Math.round(rgb[0] * normalized);
+                const g = Math.round(rgb[1] * normalized);
+                const b_val = Math.round(rgb[2] * normalized);
+
+                ctx.fillStyle = `rgb(${r}, ${g}, ${b_val})`;
+                ctx.fillRect(0, py, canvas.width, 1);
+            }
+        }
+
+        Object.values(sliders).forEach(slider => {
+            slider.addEventListener('input', drawPattern);
+        });
+
+        drawPattern();
+    </script>
+</body>
+</html>
